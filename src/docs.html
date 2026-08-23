@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffff" />
+    <title>NDy official - Api's Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { 'sans': ['Poppins', 'system-ui', 'sans-serif'] } } } }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none !important; }
+        
+        body { 
+            position: relative; 
+            background-color: #ffffff;
+            background-size: 18px 18px;
+            color: #4B4B4B;
+            letter-spacing: -0.2px; 
+            min-height: 100vh;
+            font-weight: 400;
+            font-family: 'Poppins', sans-serif;
+            padding-top: 80px;
+            padding-bottom: 50px;
+        }
+        
+        .status-badge { font-size: 0.7rem; padding: 3px 10px; font-weight: 500; border-radius: 6px; }
+        .status-ready { background: rgba(16,185,129,0.15); color: #047857; border: 1px solid rgba(16,185,129,0.3); }
+        .status-update { background: rgba(245,158,11,0.15); color: #b45309; border: 1px solid rgba(245,158,11,0.3); }
+        .status-error { background: rgba(239,68,68,0.15); color: #dc2626; border: 1px solid rgba(239,68,68,0.3); }
+        .content-type-badge { font-size: 0.80rem; padding: 3px 8px; background: rgba(51,51,51,0.05); color: #333; font-weight: 500; border-radius: 6px; }
+        .response-media-container { min-height: 200px; display: flex; align-items: center; justify-content: center; width: 100%; overflow: hidden; }
+        .response-media-container img, .response-media-container video { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+        .response-media-container audio { width: 100%; max-width: 400px; }
+        .code-block { font-family: 'Poppins', sans-serif; font-weight: 500; background: #f8f9fa; border: 1px solid #e5e7eb; overflow-x: auto; border-radius: 8px; }
+        .slide-up { animation: slideUp 0.5s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .toast {
+            position: fixed; bottom: 30px; right: 30px; background: #ffffff;
+            padding: 14px 20px; font-size: 0.85rem;
+            display: flex; align-items: center; gap: 10px; z-index: 1000;
+            max-width: 350px; transform: translateY(100px); opacity: 0; transition: all 0.5s cubic-bezier(0.68,-0.55,0.27,1.55);
+            border-radius: 10px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .loader {
+            width: 42px;
+            height: 42px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #333;
+            animation: spin 1s linear infinite;
+            border-radius: 50%;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        input[type="file"] {
+            padding-top: 10px !important;
+            padding-bottom: 10px !important;
+            line-height: 1.25 !important;
+        }
+        input[type="file"]::file-selector-button {
+            margin-right: 8px;
+            padding: 6px 16px;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        input[type="file"]::file-selector-button:hover { background: #e5e7eb; }
+        
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E") no-repeat right 0.75rem center/10px;
+            padding-right: 2.5rem !important;
+            border-radius: 8px !important;
+        }
+
+        .fixed-navbar {
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 30;
+            padding: 15px 0;
+            height: 60px;
+            background-color: white;
+            position: fixed;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+        }
+        .navbar-container {
+            max-width: 6xl;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1.8rem;
+            height: 100%;
+        }
+
+        .endpoint-expand {
+            transition: all 0.3s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            margin: 0;
+            padding: 0;
+        }
+        .endpoint-expand.open {
+            max-height: 2000px;
+            opacity: 1;
+            margin-top: 20px;
+        }
+        .api-item {
+            transition: all 0.2s ease-in-out;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        .api-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+        .api-item-appear { animation: apiAppear 0.4s ease-out forwards; }
+        @keyframes apiAppear {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .btn-dark-custom {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .btn-dark-custom:hover { background-color: #222; transform: translateY(-1px); }
+        .form-control-custom {
+            border-radius: 8px;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        .form-control-custom:focus {
+            outline: 3px solid #333 !important;
+            border-color: #333 !important;
+            box-shadow: none !important;
+        }
+        .badge-dark-custom {
+            background-color: #333;
+            color: white;
+            padding: 4px 12px;
+            font-size: 11px;
+            border-radius: 100px;
+            font-weight: 500;
+        }
+        .category-header {
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 1.2rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+        .api-item-content {
+            padding: 20px 25px;
+            background-color: #F8F9FA;
+            color: #333;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+        .api-item-content-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        .lead-custom {
+            font-size: 1rem;
+            color: #666;
+            line-height: 1.5;
+        }
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            font-family: 'Poppins', sans-serif;
+        }
+        @media (max-width: 768px) {
+            body { padding-left: 20px; padding-right: 20px; padding-top: 70px; }
+            .api-item-content { padding: 18px 20px; }
+            .category-header { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingScreen" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50 transition-opacity duration-500">
+        <div class="spinner-wrapper"><div class="loader mx-auto mb-4"></div><p class="text-gray-600 text-sm font-medium">Loading...</p></div>
+    </div>
+
+    <nav class="fixed-navbar">
+        <div class="navbar-container">
+            <div class="flex items-center gap-3">
+                <h1 id="titleApiNav" class="text-l font-medium text-gray-900">Api Documentation</h1>
+            </div>
+            <a id="Telegram" href="#" target="_blank" class="text-gray-600 hover:text-gray-900 transition-colors" aria-label="Telegram Channel">
+                <i class="fab fa-telegram text-2xl"></i>
+            </a>
+        </div>
+    </nav>
+    
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        <header class="mb-4 slide-up">
+            <div class="flex flex-col items-center text-center mb-6">
+                <div class="flex items-center justify-center gap-2 mb-1">
+                    <h1 id="titleApi" class="text-xl font-medium text-gray-900">NDy official API</h1> 
+                </div>
+                <p id="descApi" class="text-gray-700 max-w-3xl font-medium text-xs lead-custom">
+                    A comprehensive REST API built with Express.js, providing easy access to various web functionalities including downloaders, AI tools, image creators, and more.
+                </p>
+            </div>
+            <div class="mb-6"><input type="text" id="searchInput" class="form-control-custom text-xs w-full" placeholder="Search API..." autocomplete="off"></div>
+        </header>
+
+        <section class="mb-16">
+            <div id="content">
+                <div id="noResults" class="text-center py-15 hidden">
+                    <div class="max-w-md mx-auto">
+                        <h3 class="text-xs font-medium text-gray-900 mb-3">No results found</h3>
+                        <p class="text-gray-600 font-medium text-xs mb-6">Try different keywords or check the spelling.</p>
+                        <button id="clearSearchBtn" class="px-5 py-2.5 bg-gray-100 border border-gray-300 text-gray-900 text-xs font-medium hover:bg-gray-200 transition-colors rounded-lg">Clear search</button>
+                    </div>
+                </div>
+                <div id="apiList" class="space-y-8"></div>
+            </div>
+        </section>
+
+        <footer class="pt-10 border-t border-gray-200">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="text-center md:text-left"><p id="wm" class="text-gray-600 font-medium text-xs">© 2023 NDy official API. All rights reserved.</p></div>
+            </div>
+        </footer>
+    </main>
+    <div id="toastContainer"></div>
+
+    <script>
+        let settings = {};
+        let originalCategories = [];
+
+        document.addEventListener('DOMContentLoaded', () => initializeApp());
+
+        async function initializeApp() {
+            try {
+                settings = await loadSettings();
+                setupUI();
+                await loadAPIData();
+                setupEventListeners();
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loadingScreen');
+                    if (loadingScreen) {
+                        loadingScreen.style.opacity = '0';
+                        setTimeout(() => loadingScreen.style.display = 'none', 500);
+                    }
+                }, 800);
+            } catch (error) {
+                console.error(error);
+                settings = getDefaultSettings();
+                setupUI();
+                originalCategories = getDemoCategories();
+                renderAPIData(originalCategories);
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loadingScreen');
+                    if (loadingScreen) { loadingScreen.style.opacity = '0'; setTimeout(() => loadingScreen.style.display = 'none', 500); }
+                }, 800);
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const response = await fetch("/settings", { signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (!response.ok) throw new Error();
+                return await response.json();
+            } catch { return getDefaultSettings(); }
+        }
+
+        function getDefaultSettings() {
+            return {
+                name: "NDy official API",
+                creator: "NDy official Team",
+                description: "Interactive API documentation with real-time testing",
+                categories: [],
+                linkTelegram: "#"
+            };
+        }
+
+        function getDemoCategories() {
+            return [
+                { name: "Downloader", items: [
+                    { name: "TikTok Downloader", method: "GET", path: "/download/tiktok", description: "Download video TikTok tanpa watermark", parameters: { apikey: { type: "string", example: "demo", required: true }, url: { type: "string", example: "https://tiktok.com/@user/video/xxx", required: true } } },
+                    { name: "Instagram Downloader", method: "GET", path: "/download/instagram", description: "Download foto/video Instagram", parameters: { apikey: { type: "string", required: true }, url: { type: "string", required: true } } }
+                ] },
+                { name: "Imagecreator", items: [
+                    { name: "Brat Generator", method: "GET", path: "/api/brat", description: "Buat gambar style brat", parameters: { apikey: { type: "string", required: true }, text: { type: "string", example: "Hello World", required: true } } },
+                    { name: "Upscale Image", method: "POST", path: "/api/upscale", description: "Perbesar resolusi gambar", parameters: { apikey: { type: "string", required: true }, image: { type: "file", required: true } } }
+                ] },
+                { name: "AI Tools", items: [
+                    { name: "ChatGPT", method: "GET", path: "/api/ai/chatgpt", description: "AI chatbot canggih", parameters: { apikey: { type: "string", required: true }, prompt: { type: "string", required: true } } }
+                ] }
+            ];
+        }
+
+        function setupUI() {
+            document.getElementById('titleApi').textContent = settings.name || "NDy official API";
+            document.getElementById('descApi').textContent = settings.description || "A comprehensive REST API documentation";
+            document.getElementById('wm').textContent = `© 2023 ${settings.creator || "NDy official Team"}. All rights reserved.`;
+            const telegramLink = document.getElementById('Telegram');
+            if (telegramLink) telegramLink.href = settings.linkTelegram || "#";
+        }
+
+        async function loadAPIData() {
+            let apiData = await loadSettings();
+            originalCategories = apiData.categories?.length ? apiData.categories : getDemoCategories();
+            renderAPIData(originalCategories);
+        }
+
+        function renderAPIData(categories) {
+            const apiList = document.getElementById('apiList');
+            if (!apiList) return;
+            if (!categories || categories.length === 0) {
+                apiList.innerHTML = `<div class="text-center py-12"><h3 class="text-xl font-medium text-gray-900 mb-3">No API endpoints available</h3><p class="text-gray-600 font-medium">Check back later.</p></div>`;
+                return;
+            }
+            let html = '';
+            categories.forEach((category, catIndex) => {
+                if (!category || !category.name) return;
+                html += `<div class="mb-8"><h2 class="category-header">${escapeHtml(category.name)}</h2>`;
+                if (category.items && category.items.length) {
+                    category.items.forEach((item, idx) => {
+                        const method = item.method || "GET";
+                        const methodClass = 'bg-gray-800';
+                        const initialUrl = window.location.origin + (item.path || '');
+                        html += `
+                        <div class="api-item api-item-appear mb-4">
+                            <div class="api-item-content flex justify-between items-start" onclick="toggleEndpoint(${catIndex}, ${idx})">
+                                <div class="flex flex-col w-full">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-block px-2 py-1 rounded-full text-white text-xs font-medium ${methodClass}">${method}</span>
+                                            <h5 class="font-medium text-gray-900" style="font-size: 0.90rem;">${escapeHtml(item.name)}</h5>
+                                        </div>
+                                    </div>
+                                    ${item.description ? `<div class="w-full mt-1"><p class="text-xs font-medium text-gray-900 break-words leading-relaxed">${escapeHtml(item.description)}</p></div>` : ""}
+                                </div>
+                                <i class="fas fa-chevron-down text-gray-600 mt-2 transition-transform text-xs duration-200 expand-icon"></i>
+                            </div>
+                            <div id="endpoint-${catIndex}-${idx}" class="endpoint-expand">
+                                <div class="bg-white px-6 mb-8 rounded-xl">
+                                    <form id="form-${catIndex}-${idx}">
+                                        <div class="mb-4 space-y-3" id="params-container-${catIndex}-${idx}"></div>
+                                        <div class="mb-6"><div class="flex-1 code-block px-4 py-3"><span class="text-xs font-medium text-gray-900 truncate" id="url-display-${catIndex}-${idx}">${initialUrl}</span></div></div>
+                                        <div class="flex gap-3">
+                                            <button type="button" onclick="executeRequest(${catIndex}, ${idx}, '${method}')" class="flex-1 bg-gray-800 text-white font-medium py-3 px-5 text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-all rounded-lg"><i class="fas fa-play mr-2"></i> Execute Request</button>
+                                            <button type="button" onclick="clearResponse(${catIndex}, ${idx})" class="px-5 bg-gray-100 text-gray-800 font-medium py-3 text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-all rounded-lg"><i class="fas fa-redo"></i></button>
+                                        </div>
+                                    </form>
+                                    <div id="response-${catIndex}-${idx}" class="mt-6 hidden">
+                                        <div class="flex justify-between items-center mb-3">
+                                            <span class="content-type-badge" id="content-type-${catIndex}-${idx}"></span>
+                                            <div>
+                                                <span class="text-xs font-medium text-gray-600" id="response-time-${catIndex}-${idx}"></span>
+                                                <button onclick="copyResponse(${catIndex}, ${idx})" class="ml-2 text-gray-600 hover:text-gray-900"><i class="fas fa-copy"></i></button>
+                                            </div>
+                                        </div>
+                                        <div class="bg-gray-50 border border-gray-200 rounded-lg"><div class="response-media-container p-4" id="response-content-${catIndex}-${idx}"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                }
+                html += `</div>`;
+            });
+            apiList.innerHTML = html;
+            categories.forEach((cat, ci) => {
+                cat.items?.forEach((item, ei) => initializeEndpointParameters(ci, ei, item));
+            });
+        }
+
+        function initializeEndpointParameters(catIndex, endpointIndex, item) {
+            const paramsContainer = document.getElementById(`params-container-${catIndex}-${endpointIndex}`);
+            if (!paramsContainer) return;
+            const parameters = item.parameters || {};
+            if (Object.keys(parameters).length === 0) { paramsContainer.innerHTML = ''; return; }
+            let paramsHtml = '';
+            for (const [pName, pConf] of Object.entries(parameters)) {
+                const required = pConf.required !== false;
+                const type = pConf.type || "string";
+                const example = pConf.example || "";
+                const value = pConf.value || "";
+                const selection = pConf.selection || [];
+                let inputField = '';
+                if (type === "select") {
+                    let options = selection.map(opt => `<option value="${opt}" ${value === opt ? 'selected' : ''}>${opt}</option>`).join('');
+                    inputField = `<select name="${pName}" class="form-control-custom text-xs w-full" ${required ? 'required' : ''}>${options}</select>`;
+                } else if (type === "file" || type === "image" || type === "video" || type === "audio") {
+                    let accept = type === "image" ? "image/*" : type === "audio" ? "audio/*" : type === "video" ? "video/*" : "*/*";
+                    inputField = `<input type="file" name="${pName}" class="form-control-custom w-full" ${required ? 'required' : ''} onchange="handleFileSelect(${catIndex}, ${endpointIndex}, '${pName}', this)" accept="${accept}"><div id="file-info-${catIndex}-${endpointIndex}-${pName}" class="mt-1 text-xs text-gray-500 hidden"></div>`;
+                } else {
+                    const inputType = type === "number" ? "number" : "text";
+                    inputField = `<input type="${inputType}" name="${pName}" class="form-control-custom text-xs w-full" placeholder="${escapeHtml(example || `Input ${pName}...`)}" value="${escapeHtml(value)}" ${required ? 'required' : ''}>`;
+                }
+                paramsHtml += `<div><label class="block text-gray-700 font-medium text-xs mb-1">${pName} ${required ? '<span class="text-red-600">*</span>' : '<span class="text-gray-500 text-xs">(optional)</span>'}</label>${inputField}</div>`;
+            }
+            paramsContainer.innerHTML = paramsHtml;
+            if (item.method === 'GET') {
+                const inputs = paramsContainer.querySelectorAll('input, select');
+                inputs.forEach(inp => inp.addEventListener('input', () => updateRequestUrl(catIndex, endpointIndex)));
+                const urlDisplay = document.getElementById(`url-display-${catIndex}-${endpointIndex}`);
+                if (urlDisplay) {
+                    urlDisplay.dataset.baseUrl = window.location.origin + (item.path || '');
+                    // langsung panggil update agar query string dengan parameter kosong muncul
+                    updateRequestUrl(catIndex, endpointIndex);
+                }
+            }
+        }
+
+        function updateRequestUrl(catIndex, endpointIndex) {
+            const form = document.getElementById(`form-${catIndex}-${endpointIndex}`);
+            const urlDisplay = document.getElementById(`url-display-${catIndex}-${endpointIndex}`);
+            if (!form || !urlDisplay) return { url: '' };
+            let baseUrl = urlDisplay.dataset.baseUrl || window.location.origin + (originalCategories[catIndex]?.items[endpointIndex]?.path || '');
+            const params = new URLSearchParams();
+            const inputs = form.querySelectorAll('input[type="text"], input[type="number"], select');
+            // selalu append, meskipun value kosong
+            inputs.forEach(inp => {
+                params.append(inp.name, inp.value || '');
+            });
+            const qs = params.toString();
+            urlDisplay.textContent = baseUrl + (qs ? '?' + qs : '');
+            return { url: urlDisplay.textContent };
+        }
+
+        function toggleEndpoint(catIndex, endpointIndex) {
+    const ep = document.getElementById(`endpoint-${catIndex}-${endpointIndex}`);
+    const icon = document.querySelector(`#endpoint-${catIndex}-${endpointIndex}`)?.parentElement?.querySelector('.expand-icon');
+    if (!ep) return;
+
+    const isCurrentlyOpen = ep.classList.contains('open');
+
+    // Tutup semua endpoint lain yang sedang terbuka
+    document.querySelectorAll('.endpoint-expand.open').forEach(otherEp => {
+        if (otherEp !== ep) {
+            otherEp.classList.remove('open');
+            const otherIcon = otherEp.parentElement?.querySelector('.expand-icon');
+            if (otherIcon) { otherIcon.classList.remove('fa-chevron-up'); otherIcon.classList.add('fa-chevron-down'); }
+        }
+    });
+
+    if (isCurrentlyOpen) {
+        ep.classList.remove('open');
+        if (icon) { icon.classList.remove('fa-chevron-up'); icon.classList.add('fa-chevron-down'); }
+    } else {
+        ep.classList.add('open');
+        if (icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
+        setTimeout(() => ep.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 200);
+    }
+}
+
+        async function executeRequest(catIndex, endpointIndex, method) {
+            const form = document.getElementById(`form-${catIndex}-${endpointIndex}`);
+            const item = originalCategories[catIndex]?.items[endpointIndex];
+            if (!form || !item) return;
+            const paramsConfig = item.parameters || {};
+            for (const [pName, pConf] of Object.entries(paramsConfig)) {
+                if (pConf.required) {
+                    const input = form.querySelector(`[name="${pName}"]`);
+                    if (input) {
+                        const isFile = pConf.type === 'file' || pConf.type === 'image' || pConf.type === 'video';
+                        if (isFile && (!input.files || input.files.length === 0)) { showToast(`${pName} is required`, 'error'); input.focus(); return; }
+                        if (!isFile && !input.value.trim()) { showToast(`${pName} is required`, 'error'); input.focus(); return; }
+                    }
+                }
+            }
+            const responseDiv = document.getElementById(`response-${catIndex}-${endpointIndex}`);
+            const respContent = document.getElementById(`response-content-${catIndex}-${endpointIndex}`);
+            const respTimeSpan = document.getElementById(`response-time-${catIndex}-${endpointIndex}`);
+            const contentTypeSpan = document.getElementById(`content-type-${catIndex}-${endpointIndex}`);
+            if (!responseDiv) return;
+            responseDiv.classList.remove('hidden');
+            respContent.innerHTML = `<div class="flex justify-center py-8"><div class="loader"></div></div>`;
+            const start = Date.now();
+            try {
+                let url = '', options = { method, headers: { 'Accept': '*/*' } };
+                if (method === 'GET') {
+                    const result = updateRequestUrl(catIndex, endpointIndex);
+                    url = result.url;
+                } else {
+                    const formData = new FormData();
+                    const inputs = form.querySelectorAll('input, select');
+                    inputs.forEach(inp => { if (inp.value) formData.append(inp.name, inp.value); });
+                    const fileInputs = form.querySelectorAll('input[type="file"]');
+                    fileInputs.forEach(inp => { if (inp.files?.length) formData.append(inp.name, inp.files[0]); });
+                    options.body = formData;
+                    url = document.getElementById(`url-display-${catIndex}-${endpointIndex}`).textContent.split('?')[0];
+                }
+                const res = await fetch(url, options);
+                const elapsed = Date.now() - start;
+                respTimeSpan.textContent = `${elapsed}ms`;
+                const contentType = res.headers.get('content-type') || '';
+                contentTypeSpan.textContent = contentType.split(';')[0];
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (contentType.includes('application/json')) {
+                    const json = await res.json();
+                    respContent.innerHTML = `<div style="font-size: 0.80rem; white-space: pre-wrap; padding: 1rem; background: #f9fafb; border-radius: 0.5rem; overflow: auto; max-height: 24rem;">${JSON.stringify(json, null, 2)}</div>`;
+                } else if (contentType.includes('text/')) {
+                    const text = await res.text();
+                    respContent.innerHTML = `<div style="font-size: 0.80rem; white-space: pre-wrap; padding: 1rem; background: #f9fafb; border-radius: 0.5rem; overflow: auto; max-height: 24rem;">${escapeHtml(text)}</div>`;
+                } else if (contentType.includes('image/')) {
+                    const blob = await res.blob();
+                    const imgUrl = URL.createObjectURL(blob);
+                    respContent.innerHTML = `<img src="${imgUrl}" class="max-w-full max-h-96 rounded-lg">`;
+                } else {
+                    const text = await res.text();
+                    respContent.innerHTML = `<div style="font-family: monospace; font-size: 0.80rem; white-space: pre-wrap; padding: 1rem; background: #f9fafb; border-radius: 0.5rem; overflow: auto; max-height: 24rem;">${escapeHtml(text.substring(0, 1000))}</div>`;
+                }
+                showToast('Request successful', 'success');
+            } catch (err) {
+                respContent.innerHTML = `<div class="text-red-500 font-medium p-4">Error: ${escapeHtml(err.message)}</div>`;
+                showToast(err.message, 'error');
+            }
+        }
+
+        function clearResponse(catIndex, endpointIndex) {
+            const form = document.getElementById(`form-${catIndex}-${endpointIndex}`);
+            const responseDiv = document.getElementById(`response-${catIndex}-${endpointIndex}`);
+            if (form) form.reset();
+            if (responseDiv) responseDiv.classList.add('hidden');
+            const method = originalCategories[catIndex]?.items[endpointIndex]?.method;
+            if (method === 'GET') updateRequestUrl(catIndex, endpointIndex);
+            showToast('Form cleared', 'info');
+        }
+
+        function copyResponse(catIndex, endpointIndex) {
+            const content = document.getElementById(`response-content-${catIndex}-${endpointIndex}`);
+            if (content) {
+                const text = content.innerText;
+                navigator.clipboard.writeText(text).then(() => showToast('Copied!', 'success'));
+            }
+        }
+
+        function handleSearch(term) {
+            const searchTerm = term.trim().toLowerCase();
+            if (!searchTerm) { renderAPIData(originalCategories); document.getElementById('noResults').classList.add('hidden'); return; }
+            const filtered = originalCategories.map(cat => ({
+                ...cat,
+                items: (cat.items || []).filter(item => item.name.toLowerCase().includes(searchTerm) || (item.description || '').toLowerCase().includes(searchTerm))
+            })).filter(cat => cat.items.length > 0);
+            if (filtered.length === 0) {
+                document.getElementById('apiList').innerHTML = '';
+                document.getElementById('noResults').classList.remove('hidden');
+            } else {
+                renderAPIData(filtered);
+                document.getElementById('noResults').classList.add('hidden');
+            }
+        }
+
+        function setupEventListeners() {
+            const searchInput = document.getElementById('searchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            if (searchInput) searchInput.addEventListener('input', (e) => handleSearch(e.target.value));
+            if (clearBtn) clearBtn.addEventListener('click', () => { document.getElementById('searchInput').value = ''; handleSearch(''); showToast('Search cleared', 'info'); });
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<div class="flex items-center gap-3"><i class="fas ${type === 'success' ? 'fa-check-circle text-green-600' : type === 'error' ? 'fa-exclamation-circle text-red-600' : 'fa-info-circle text-blue-600'}"></i><span>${escapeHtml(msg)}</span></div>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 500); }, 3500);
+        }
+
+        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+
+        function handleFileSelect(catIndex, endpointIndex, paramName, input) {
+            const infoDiv = document.getElementById(`file-info-${catIndex}-${endpointIndex}-${paramName}`);
+            if (input.files.length) {
+                const file = input.files[0];
+                infoDiv.innerHTML = `<i class="fas fa-check-circle text-green-600"></i> ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+                infoDiv.classList.remove('hidden');
+            } else infoDiv.classList.add('hidden');
+        }
+
+        window.toggleEndpoint = toggleEndpoint;
+        window.executeRequest = executeRequest;
+        window.clearResponse = clearResponse;
+        window.copyResponse = copyResponse;
+        window.handleFileSelect = handleFileSelect;
+    </script>
+</body>
+</html>
