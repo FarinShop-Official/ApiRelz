@@ -1477,9 +1477,22 @@ module.exports = [
                                         null,
 
                                     status:
-                                        item?.status ||
-                                        tx?.status ||
-                                        null,
+    (
+        item?.status ||
+        tx?.status ||
+        ""
+    ).toLowerCase() === "settlement" ||
+    (
+        item?.status ||
+        tx?.status ||
+        ""
+    ).toLowerCase() === "capture"
+        ? "success"
+        : (
+            item?.status ||
+            tx?.status ||
+            null
+        ),
 
                                     time:
                                         item?.time ||
@@ -1655,5 +1668,463 @@ module.exports = [
                 );
             }
         }
+    },
+
+    /* =====================================================
+     * ALIAS: /auth/refresh/token
+     * Dipakai oleh server.js
+     * =================================================== */
+    {
+        name:
+            "Refresh Token Alias",
+
+        desc:
+            "Alias kompatibilitas untuk /gomerch/refreshtoken",
+
+        category:
+            "Gopay Merchant",
+
+        parameters: {
+            refresh_token:
+                {
+                    type:
+                        "string"
+                }
+        },
+
+        path:
+            "/auth/refresh/token",
+
+        async run(req, res) {
+
+            /*
+             * server.js mengirim API key lewat:
+             * x-api-key
+             *
+             * Tetap dukung ?apikey= juga.
+             */
+            const apikey =
+                req.headers?.["x-api-key"] ||
+                req.headers?.["X-API-Key"] ||
+                req.query?.apikey;
+
+            if (
+                !apikey ||
+                !checkApiKey(apikey)
+            ) {
+                return res.status(401).json({
+                    success:
+                        false,
+
+                    error:
+                        "Apikey invalid"
+                });
+            }
+
+            const {
+                refresh_token
+            } = req.query;
+
+            if (!refresh_token) {
+                return res.status(400).json({
+                    success:
+                        false,
+
+                    error:
+                        "Refresh token is required"
+                });
+            }
+
+            try {
+
+                const gopay =
+                    new GoMerchant();
+
+                /*
+                 * PAKAI METHOD ASLI
+                 * Tidak mengubah logic GoBiz.
+                 */
+                const result =
+                    await gopay.refreshToken(
+                        refresh_token
+                    );
+
+                return res.status(200).json({
+
+                    success:
+                        true,
+
+                    data:
+                        result
+
+                });
+
+            } catch (err) {
+
+                return sendError(
+                    res,
+                    err
+                );
+            }
+        }
+    },
+
+
+    /* =====================================================
+     * ALIAS: /api/history
+     * Dipakai oleh server.js
+     *
+     * Alias dari /gomerch/mutasi
+     * =================================================== */
+    {
+        name:
+            "History Alias",
+
+        desc:
+            "Alias kompatibilitas untuk /gomerch/mutasi",
+
+        category:
+            "Gopay Merchant",
+
+        parameters: {
+            token:
+                {
+                    type:
+                        "string"
+                },
+
+            start_time:
+                {
+                    type:
+                        "string",
+
+                    required:
+                        false
+                }
+        },
+
+        path:
+            "/api/history",
+
+        async run(req, res) {
+
+            /*
+             * server.js mengirim x-api-key.
+             */
+            const apikey =
+                req.headers?.["x-api-key"] ||
+                req.headers?.["X-API-Key"] ||
+                req.query?.apikey;
+
+            if (
+                !apikey ||
+                !checkApiKey(apikey)
+            ) {
+                return res.status(401).json({
+                    success:
+                        false,
+
+                    error:
+                        "Apikey invalid"
+                });
+            }
+
+            const {
+                token,
+                start_time
+            } = req.query;
+
+            if (!token) {
+                return res.status(400).json({
+                    success:
+                        false,
+
+                    error:
+                        "Access token is required"
+                });
+            }
+
+            try {
+
+                const gopay =
+                    new GoMerchant();
+
+                /*
+                 * Sama dengan logic /gomerch/mutasi asli.
+                 */
+                const user =
+                    await gopay.getMe(
+                        token
+                    );
+
+                const merchantId =
+                    user?.user?.merchant_id ||
+                    user?.merchant_id ||
+                    user?.data?.merchant_id;
+
+                if (!merchantId) {
+                    throw new Error(
+                        "merchant_id tidak ditemukan dari response /v1/users/me"
+                    );
+                }
+
+                const defaultStartTime =
+                    new Date(
+                        Date.now() -
+                        7 *
+                        24 *
+                        60 *
+                        60 *
+                        1000
+                    ).toISOString();
+
+                const journals =
+                    await gopay.getJournals(
+                        token,
+                        merchantId,
+                        start_time ||
+                        defaultStartTime
+                    );
+
+                const hits =
+                    Array.isArray(
+                        journals?.hits
+                    )
+                        ? journals.hits
+                        : [];
+
+                const data =
+                    hits
+                        .filter(
+                            item =>
+                                item?.metadata
+                                    ?.transaction
+                                    ?.payment_type ===
+                                "qris"
+                        )
+                        .map(
+                            item => {
+
+                                const tx =
+                                    item?.metadata
+                                        ?.transaction ||
+                                    {};
+
+                                const aspi =
+                                    item?.metadata
+                                        ?.provider_metadata
+                                        ?.aspi ||
+                                    {};
+
+                                const aspiData =
+                                    aspi?.data ||
+                                    {};
+
+                                return {
+
+                                    id:
+                                        item?.id ||
+                                        null,
+
+                                    reference_id:
+                                        item?.reference_id ||
+                                        null,
+
+                                    status:
+                                        item?.status ||
+                                        tx?.status ||
+                                        null,
+
+                                    time:
+                                        item?.time ||
+                                        tx?.transaction_time ||
+                                        null,
+
+                                    amount:
+                                        aspiData?.amount ||
+                                        tx?.amount ||
+                                        0,
+
+                                    issuer:
+                                        aspi?.issuer ||
+                                        null,
+
+                                    acquirer:
+                                        aspi?.acquirer ||
+                                        null,
+
+                                    merchant_name:
+                                        aspiData
+                                            ?.merchant_name ||
+                                        null,
+
+                                    merchant_id:
+                                        aspiData
+                                            ?.merchant_id ||
+                                        merchantId,
+
+                                    merchant_city:
+                                        aspiData
+                                            ?.merchant_city ||
+                                        null,
+
+                                    terminal_label:
+                                        aspiData
+                                            ?.additional_data
+                                            ?.terminal_label ||
+                                        null
+                                };
+                            }
+                        );
+
+                /*
+                 * server.js MENGHARAPKAN:
+                 *
+                 * {
+                 *   success: true,
+                 *   data: [...]
+                 * }
+                 */
+                return res.status(200).json({
+
+                    success:
+                        true,
+
+                    merchant_id:
+                        merchantId,
+
+                    total:
+                        data.length,
+
+                    data:
+                        data
+
+                });
+
+            } catch (err) {
+
+                return sendError(
+                    res,
+                    err
+                );
+            }
+        }
+    },
+
+
+    /* =====================================================
+     * ALIAS: /api/qris/create
+     * Dipakai oleh server.js
+     *
+     * Alias dari /gomerch/createpayment
+     * =================================================== */
+    {
+        name:
+            "Create QRIS Alias",
+
+        desc:
+            "Alias kompatibilitas untuk /gomerch/createpayment",
+
+        category:
+            "Gopay Merchant",
+
+        parameters: {
+            amount:
+                {
+                    type:
+                        "string"
+                },
+
+            static_qr:
+                {
+                    type:
+                        "string"
+                }
+        },
+
+        path:
+            "/api/qris/create",
+
+        async run(req, res) {
+
+            const apikey =
+                req.headers?.["x-api-key"] ||
+                req.headers?.["X-API-Key"] ||
+                req.query?.apikey;
+
+            if (
+                !apikey ||
+                !checkApiKey(apikey)
+            ) {
+                return res.status(401).json({
+                    success:
+                        false,
+
+                    error:
+                        "Apikey invalid"
+                });
+            }
+
+            const {
+                amount,
+                static_qr
+            } = req.query;
+
+            if (
+                !amount ||
+                !static_qr
+            ) {
+                return res.status(400).json({
+                    success:
+                        false,
+
+                    error:
+                        "Amount and static QR string are required"
+                });
+            }
+
+            try {
+
+                const gopay =
+                    new GoMerchant();
+
+                /*
+                 * PAKAI METHOD ASLI.
+                 */
+                const result =
+                    await gopay.createDynamicQRIS(
+                        amount,
+                        static_qr
+                    );
+
+                /*
+                 * server.js mengharapkan:
+                 *
+                 * data.success
+                 * data.image_url
+                 */
+                return res.status(200).json({
+
+                    success:
+                        true,
+
+                    image_url:
+                        `data:image/png;base64,${result.qr_buffer}`,
+
+                    data:
+                        result
+
+                });
+
+            } catch (err) {
+
+                return sendError(
+                    res,
+                    err,
+                    400
+                );
+            }
+        }
     }
+
 ];
