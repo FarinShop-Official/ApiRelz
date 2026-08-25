@@ -28,9 +28,7 @@ class GoMerchant {
             'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36'
         };
 
-        if (token) {
-            h['Authorization'] = `Bearer ${token}`;
-        }
+        if (token) h['Authorization'] = `Bearer ${token}`;
 
         return h;
     }
@@ -232,9 +230,7 @@ class GoMerchant {
                 `${this.baseUrl}/v1/users/me`,
                 {
                     headers:
-                        this.headers(
-                            accessToken
-                        )
+                        this.headers(accessToken)
                 }
             );
 
@@ -358,100 +354,8 @@ class GoMerchant {
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| HELPER API KEY
-|--------------------------------------------------------------------------
-|
-| Endpoint asli:
-|   ?apikey=...
-|
-| Alias juga menerima:
-|   x-api-key
-|   X-API-Key
-|   ?apikey=...
-|
-|--------------------------------------------------------------------------
-*/
-
-function getApiKey(req) {
-    return (
-        req.query?.apikey ||
-        req.headers?.['x-api-key'] ||
-        req.headers?.['X-API-Key'] ||
-        req.headers?.['X-Api-Key'] ||
-        ''
-    ).toString().trim();
-}
-
-function isValidApiKey(req) {
-    const apiKey =
-        getApiKey(req);
-
-    return (
-        !!apiKey &&
-        Array.isArray(global.apikey) &&
-        global.apikey.includes(apiKey)
-    );
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| NORMALIZE TOKEN
-|--------------------------------------------------------------------------
-*/
-
-function getTokenPayload(result) {
-    if (!result) {
-        return {};
-    }
-
-    if (
-        result.access_token ||
-        result.refresh_token
-    ) {
-        return result;
-    }
-
-    if (
-        result.data &&
-        typeof result.data === 'object'
-    ) {
-        return result.data;
-    }
-
-    if (
-        result.result &&
-        typeof result.result === 'object'
-    ) {
-        if (
-            result.result.access_token ||
-            result.result.refresh_token
-        ) {
-            return result.result;
-        }
-
-        if (
-            result.result.data &&
-            typeof result.result.data === 'object'
-        ) {
-            return result.result.data;
-        }
-    }
-
-    return result;
-}
-
-
 // Endpoint Routes
 module.exports = [
-
-    /*
-    |--------------------------------------------------------------------------
-    | ORIGINAL: REQUEST OTP
-    |--------------------------------------------------------------------------
-    */
 
     {
         name:
@@ -535,10 +439,9 @@ module.exports = [
 
                 if (email) {
                     result =
-                        await gopay
-                            .requestOtpEmail(
-                                email
-                            );
+                        await gopay.requestOtpEmail(
+                            email
+                        );
                 } else {
                     let phoneNumber =
                         phone;
@@ -555,10 +458,9 @@ module.exports = [
                     }
 
                     result =
-                        await gopay
-                            .requestOtp(
-                                phoneNumber
-                            );
+                        await gopay.requestOtp(
+                            phoneNumber
+                        );
                 }
 
                 return res
@@ -584,16 +486,6 @@ module.exports = [
         }
     },
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | ORIGINAL: VERIFY OTP / TAHAP 2
-    |--------------------------------------------------------------------------
-    |
-    | BAGIAN INI SENGAJA TIDAK DIUBAH
-    |
-    |--------------------------------------------------------------------------
-    */
 
     {
         name:
@@ -659,7 +551,7 @@ module.exports = [
                         false,
 
                     error:
-                        "OTP and otp_token are required"
+                        "OTP and OTP token are required"
                 });
             }
 
@@ -696,12 +588,6 @@ module.exports = [
         }
     },
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | ORIGINAL: REFRESH TOKEN
-    |--------------------------------------------------------------------------
-    */
 
     {
         name:
@@ -752,9 +638,7 @@ module.exports = [
                 });
             }
 
-            if (
-                !refresh_token
-            ) {
+            if (!refresh_token) {
                 return res.json({
                     status:
                         false,
@@ -796,12 +680,6 @@ module.exports = [
         }
     },
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | ORIGINAL: MUTASI
-    |--------------------------------------------------------------------------
-    */
 
     {
         name:
@@ -1015,12 +893,6 @@ module.exports = [
     },
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | ORIGINAL: CREATE PAYMENT
-    |--------------------------------------------------------------------------
-    */
-
     {
         name:
             "Buat QRIS Dinamis",
@@ -1123,17 +995,10 @@ module.exports = [
     },
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | ALIAS 1
-    |--------------------------------------------------------------------------
-    |
-    | /auth/refresh/token
-    |
-    | Dipakai server.js lama.
-    |
-    |--------------------------------------------------------------------------
-    */
+    // ============================================================
+    // ALIAS 1
+    // /auth/refresh/token
+    // ============================================================
 
     {
         name:
@@ -1143,7 +1008,7 @@ module.exports = [
             "Alias kompatibilitas untuk server.js lama",
 
         category:
-            "Gopay Merchant Compatibility",
+            "Gopay Merchant",
 
         parameters: {
             refresh_token: {
@@ -1160,7 +1025,9 @@ module.exports = [
             res
         ) {
             const apiKey =
-                getApiKey(req);
+                req.headers['x-api-key'] ||
+                req.headers['X-API-Key'] ||
+                req.query.apikey;
 
             if (
                 !apiKey ||
@@ -1192,49 +1059,14 @@ module.exports = [
             }
 
             try {
-                /*
-                 * PENTING:
-                 *
-                 * Pakai fungsi refreshToken
-                 * asli.
-                 */
                 const gopay =
                     new GoMerchant();
 
+                // PAKAI LOGIC ASLI
                 const result =
                     await gopay.refreshToken(
                         refresh_token
                     );
-
-                const tokenPayload =
-                    getTokenPayload(
-                        result
-                    );
-
-                const accessToken =
-                    tokenPayload.access_token ||
-                    tokenPayload.token;
-
-                const newRefreshToken =
-                    tokenPayload.refresh_token ||
-                    refresh_token;
-
-                if (!accessToken) {
-                    console.error(
-                        "Refresh token response:",
-                        result
-                    );
-
-                    return res
-                        .status(500)
-                        .json({
-                            success:
-                                false,
-
-                            error:
-                                "access_token tidak ditemukan pada response GoPay"
-                        });
-                }
 
                 return res
                     .status(200)
@@ -1242,24 +1074,13 @@ module.exports = [
                         success:
                             true,
 
-                        data: {
-                            access_token:
-                                accessToken,
-
-                            refresh_token:
-                                newRefreshToken,
-
-                            token_type:
-                                tokenPayload.token_type,
-
-                            expires_in:
-                                tokenPayload.expires_in
-                        }
+                        data:
+                            result
                     });
 
             } catch (err) {
                 console.error(
-                    "Refresh Token Alias Error:",
+                    "Refresh Token Alias:",
                     err.response?.data ||
                     err.message
                 );
@@ -1271,27 +1092,18 @@ module.exports = [
                             false,
 
                         error:
-                            err.response?.data
-                                ?.error ||
-                            err.message ||
-                            "Gagal refresh token"
+                            err.response?.data ||
+                            err.message
                     });
             }
         }
     },
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | ALIAS 2
-    |--------------------------------------------------------------------------
-    |
-    | /api/qris/create
-    |
-    | Dipakai server.js lama.
-    |
-    |--------------------------------------------------------------------------
-    */
+    // ============================================================
+    // ALIAS 2
+    // /api/qris/create
+    // ============================================================
 
     {
         name:
@@ -1301,7 +1113,7 @@ module.exports = [
             "Alias kompatibilitas untuk server.js lama",
 
         category:
-            "Gopay Merchant Compatibility",
+            "Gopay Merchant",
 
         parameters: {
             amount: {
@@ -1323,7 +1135,9 @@ module.exports = [
             res
         ) {
             const apiKey =
-                getApiKey(req);
+                req.headers['x-api-key'] ||
+                req.headers['X-API-Key'] ||
+                req.query.apikey;
 
             if (
                 !apiKey ||
@@ -1359,41 +1173,16 @@ module.exports = [
             }
 
             try {
-                /*
-                 * Pakai generator QRIS
-                 * ASLI.
-                 */
                 const gopay =
                     new GoMerchant();
 
+                // PAKAI LOGIC ASLI
                 const result =
                     await gopay.createDynamicQRIS(
                         amount,
                         static_qr
                     );
 
-                if (
-                    !result ||
-                    !result.qr_buffer
-                ) {
-                    return res
-                        .status(500)
-                        .json({
-                            success:
-                                false,
-
-                            error:
-                                "QRIS tidak berhasil dibuat"
-                        });
-                }
-
-                const imageUrl =
-                    `data:image/png;base64,${result.qr_buffer}`;
-
-                /*
-                 * server.js lama
-                 * membutuhkan image_url.
-                 */
                 return res
                     .status(200)
                     .json({
@@ -1401,26 +1190,15 @@ module.exports = [
                             true,
 
                         image_url:
-                            imageUrl,
+                            `data:image/png;base64,${result.qr_buffer}`,
 
-                        data: {
-                            qr_buffer:
-                                result.qr_buffer,
-
-                            qr_string:
-                                result.qr_string,
-
-                            amount:
-                                result.amount,
-
-                            created_at:
-                                result.created_at
-                        }
+                        data:
+                            result
                     });
 
             } catch (err) {
                 console.error(
-                    "Create QRIS Alias Error:",
+                    "Create QRIS Alias:",
                     err.response?.data ||
                     err.message
                 );
@@ -1432,27 +1210,18 @@ module.exports = [
                             false,
 
                         error:
-                            err.response?.data
-                                ?.error ||
-                            err.message ||
-                            "Gagal membuat QRIS"
+                            err.response?.data ||
+                            err.message
                     });
             }
         }
     },
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | ALIAS 3
-    |--------------------------------------------------------------------------
-    |
-    | /api/history
-    |
-    | Dipakai server.js lama.
-    |
-    |--------------------------------------------------------------------------
-    */
+    // ============================================================
+    // ALIAS 3
+    // /api/history
+    // ============================================================
 
     {
         name:
@@ -1462,7 +1231,7 @@ module.exports = [
             "Alias kompatibilitas untuk server.js lama",
 
         category:
-            "Gopay Merchant Compatibility",
+            "Gopay Merchant",
 
         parameters: {
             token: {
@@ -1479,7 +1248,9 @@ module.exports = [
             res
         ) {
             const apiKey =
-                getApiKey(req);
+                req.headers['x-api-key'] ||
+                req.headers['X-API-Key'] ||
+                req.query.apikey;
 
             if (
                 !apiKey ||
@@ -1497,7 +1268,8 @@ module.exports = [
             }
 
             const {
-                token
+                token,
+                start_time
             } = req.query;
 
             if (!token) {
@@ -1514,17 +1286,14 @@ module.exports = [
                 const gopay =
                     new GoMerchant();
 
-                /*
-                 * Ambil merchant ID
-                 * menggunakan logic ASLI.
-                 */
+                // SAMA DENGAN LOGIC MUTASI ASLI
                 const user =
                     await gopay.getMe(
                         token
                     );
 
                 const merchantId =
-                    user?.user?.merchant_id;
+                    user.user?.merchant_id;
 
                 if (!merchantId) {
                     throw new Error(
@@ -1532,11 +1301,7 @@ module.exports = [
                     );
                 }
 
-                /*
-                 * Ambil mutasi 7 hari
-                 * terakhir.
-                 */
-                const startTime =
+                const defaultStartTime =
                     new Date(
                         Date.now() -
                         (
@@ -1552,12 +1317,13 @@ module.exports = [
                     await gopay.getJournals(
                         token,
                         merchantId,
-                        startTime
+                        start_time ||
+                            defaultStartTime
                     );
 
                 const data =
                     (
-                        journals?.hits ||
+                        journals.hits ||
                         []
                     )
                     .filter(
@@ -1572,22 +1338,22 @@ module.exports = [
                         item => {
                             const aspi =
                                 item
-                                    ?.metadata
+                                    .metadata
                                     ?.provider_metadata
                                     ?.aspi;
 
                             return {
                                 id:
-                                    item?.id,
+                                    item.id,
 
                                 reference_id:
-                                    item?.reference_id,
+                                    item.reference_id,
 
                                 status:
-                                    item?.status,
+                                    item.status,
 
                                 time:
-                                    item?.time,
+                                    item.time,
 
                                 amount:
                                     aspi
@@ -1633,10 +1399,6 @@ module.exports = [
                         }
                     );
 
-                /*
-                 * Format response dibuat
-                 * sesuai server.js lama.
-                 */
                 return res
                     .status(200)
                     .json({
@@ -1651,45 +1413,20 @@ module.exports = [
 
             } catch (err) {
                 console.error(
-                    "History Alias Error:",
+                    "History Alias:",
                     err.response?.data ||
                     err.message
                 );
 
-                const errorMessage =
-                    err.response?.data?.error ||
-                    err.message ||
-                    "Gagal mengambil mutasi";
-
-                /*
-                 * Kalau access token
-                 * expired, HTTP 401 supaya
-                 * server.js bisa melakukan
-                 * refresh.
-                 */
-                const tokenExpired =
-                    /expired token/i.test(
-                        errorMessage
-                    ) ||
-                    /invalid token/i.test(
-                        errorMessage
-                    ) ||
-                    /unauthorized/i.test(
-                        errorMessage
-                    );
-
                 return res
-                    .status(
-                        tokenExpired
-                            ? 401
-                            : 500
-                    )
+                    .status(500)
                     .json({
                         success:
                             false,
 
                         error:
-                            errorMessage
+                            err.response?.data ||
+                            err.message
                     });
             }
         }
